@@ -12,11 +12,12 @@ void showSnackBar(BuildContext context, String message) {
 Future<File?> pickAudio() async {
   try {
     final res = await FilePicker.platform.pickFiles(type: FileType.audio);
-    if (res != null) {
+    if (res != null && res.files.first.path != null) {
       return File(res.files.first.path!);
     }
     return null;
   } catch (e) {
+    debugPrint('pickAudio error: $e');
     return null;
   }
 }
@@ -52,12 +53,16 @@ Color hexToColor(String hex) {
 
 Future<File?> pickImage() async {
   try {
-    final res = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (res != null) {
+    final res = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'],
+    );
+    if (res != null && res.files.first.path != null) {
       return File(res.files.first.path!);
     }
     return null;
   } catch (e) {
+    debugPrint('pickImage error: $e');
     return null;
   }
 }
