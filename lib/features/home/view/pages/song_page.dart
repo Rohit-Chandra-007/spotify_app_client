@@ -1,5 +1,9 @@
-import 'package:client/core/providers/current_song_notifier.dart';
 import 'package:client/core/theme/color_pallete.dart';
+import 'package:client/features/home/model/song_model.dart';
+import 'package:client/features/home/view/widgets/greeting_header.dart';
+import 'package:client/features/home/view/widgets/quick_pick_grid.dart';
+import 'package:client/features/home/view/widgets/song_list_tile.dart';
+import 'package:client/features/home/view/widgets/song_section.dart';
 import 'package:client/features/home/viewmodel/home_viewmodel.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -10,128 +14,131 @@ class SongPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    var textStyle = Theme.of(context).textTheme;
-    return SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text('Today’s hits', style: textStyle.titleLarge),
+    return ref
+        .watch(getAllSongsProvider)
+        .when(
+          data: (allSongs) => _buildContent(context, allSongs),
+          error: (error, _) => _buildError(context, error),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: ColorPallete.gradient2),
           ),
-          ref
-              .watch(getAllSongsProvider)
-              .when(
-                data: (data) {
-                  return SizedBox(
-                    height: 220, // Adjusted height to fit text
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: data.length,
-                      itemBuilder: (context, index) {
-                        final song = data[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(left: 10),
-                          child: SizedBox(
-                            width: 150,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Stack(
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () {
-                                        ref
-                                            .read(currentSongProvider.notifier)
-                                            .updateSong(song);
-                                      },
-                                      child: Container(
-                                        height: 150,
-                                        width: 150,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            15,
-                                          ),
-                                          image: DecorationImage(
-                                            image: NetworkImage(
-                                              song.thumbnailUrl,
-                                            ),
-                                            fit: BoxFit.cover,
-                                            onError: (exception, stackTrace) {
-                                              // You can add a placeholder image here on error
-                                            },
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.3,
-                                              ),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    // Positioned widget is great for placing items in a Stack
-                                    Positioned(
-                                      bottom: 8,
-                                      right: 8,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: ColorPallete.greyColor,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          CupertinoIcons.play_fill,
-                                          color: ColorPallete.whiteColor,
-                                          size: 16,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                // Song title
-                                Text(
-                                  song.title,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                                // Artist name
-                                Text(
-                                  song.artist,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-                error: (error, stackTrace) {
-                  return Text(error.toString());
-                },
-                loading: () {
-                  return const Center(child: CircularProgressIndicator());
-                },
-              ),
-        ],
+        );
+  }
+
+  Widget _buildError(BuildContext context, Object error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              CupertinoIcons.wifi_slash,
+              color: ColorPallete.greyColor,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Could not load songs',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: ColorPallete.whiteColor),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error.toString(),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: ColorPallete.greyColor),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, List<SongModel> allSongs) {
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        // Safe area spacer
+        const SliverToBoxAdapter(
+          child: SafeArea(bottom: false, child: SizedBox.shrink()),
+        ),
+
+        // Greeting Header
+        const SliverToBoxAdapter(child: GreetingHeader()),
+
+        // Quick Pick Grid
+        if (allSongs.isNotEmpty)
+          SliverToBoxAdapter(child: QuickPickGrid(songs: allSongs)),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 28)),
+
+        // Today's Biggest Hits — horizontal scroll
+        if (allSongs.isNotEmpty)
+          SliverToBoxAdapter(
+            child: SongSection(
+              title: "Today's Biggest Hits",
+              icon: CupertinoIcons.flame_fill,
+              iconColor: const Color(0xFFFF6B35),
+              songs: allSongs,
+              useLargeCards: true,
+            ),
+          ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 28)),
+
+        // Fresh Finds — show reversed list for variety
+        if (allSongs.length > 1)
+          SliverToBoxAdapter(
+            child: SongSection(
+              title: 'Fresh Finds',
+              icon: CupertinoIcons.sparkles,
+              iconColor: ColorPallete.gradient2,
+              songs: allSongs.reversed.toList(),
+              useLargeCards: false,
+            ),
+          ),
+
+        if (allSongs.length > 1)
+          const SliverToBoxAdapter(child: SizedBox(height: 28)),
+
+        // All Songs — section header
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Row(
+              children: [
+                Icon(
+                  CupertinoIcons.music_note_list,
+                  color: ColorPallete.gradient1,
+                  size: 22,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'All Songs',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: ColorPallete.whiteColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // All Songs — vertical list
+        SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            return SongListTile(song: allSongs[index], index: index + 1);
+          }, childCount: allSongs.length),
+        ),
+
+        // Bottom padding so music slab doesn't cover last items
+        const SliverToBoxAdapter(child: SizedBox(height: 120)),
+      ],
     );
   }
 }

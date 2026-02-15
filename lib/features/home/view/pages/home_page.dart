@@ -1,7 +1,6 @@
 import 'package:client/features/home/view/pages/account_page.dart';
 import 'package:client/features/home/view/pages/library_page.dart';
 import 'package:client/features/home/view/pages/song_page.dart';
-import 'package:client/features/home/view/pages/upload_song_page.dart';
 import 'package:client/features/home/view/widgets/music_slab.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -33,16 +32,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           page[_selectedIndex],
           const Positioned(bottom: 0, child: MusicSlab()),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const UploadSongPage()),
-          );
-        },
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
